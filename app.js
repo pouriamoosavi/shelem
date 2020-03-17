@@ -65,8 +65,8 @@ server.listen(3000);
 let allCards = [
   {name: 'c1', img: 'ace_of_clubs'}, {name: 'c2', img: '2_of_clubs'}, {name: 'c3', img: '3_of_clubs'}, {name: 'c4', img: '4_of_clubs'}, {name: 'c5', img: '5_of_clubs'}, {name: 'c6', img: '6_of_clubs'}, {name: 'c7', img: '7_of_clubs'}, {name: 'c8', img: '8_of_clubs'}, {name: 'c9', img: '9_of_clubs'}, {name: 'c10', img: '10_of_clubs'}, {name: 'cj', img: 'jack_of_clubs2'}, {name: 'cq', img: 'queen_of_clubs2'}, {name: 'ck', img: 'king_of_clubs2'},
   {name: 'd1', img: 'ace_of_diamonds'}, {name: 'd2', img: '2_of_diamonds'}, {name: 'd3', img: '3_of_diamonds'}, {name: 'd4', img: '4_of_diamonds'}, {name: 'd5', img: '5_of_diamonds'}, {name: 'd6', img: '6_of_diamonds'}, {name: 'd7', img: '7_of_diamonds'}, {name: 'd8', img: '8_of_diamonds'}, {name: 'd9', img: '9_of_diamonds'}, {name: 'd10', img: '10_of_diamonds'}, {name: 'dj', img: 'jack_of_diamonds2'}, {name: 'dq', img: 'queen_of_diamonds2'}, {name: 'dk', img: 'king_of_diamonds2'},
-  {name: 'h1', img: 'ace_of_hearts'}, {name: 'h2', img: '2_of_hearts'}, {name: 'h3', img: '3_of_hearts'}, {name: 'h4', img: '4_of_hearts'}, {name: 'h5', img: '5_of_hearts'}, {name: 'h6', img: '6_of_hearts'}, {name: 'h7', img: '7_of_hearts'}, {name: 'h8', img: '8_of_hearts'}, {name: 'h9', img: '9_of_hearts'}, {name: 'h10', img: '10_of_hearts'}, {name: 'hj', img: 'jack_of_hearts2'}, {name: 'hq', img: 'queen_of_hearts2'}, {name: 'hk', img: 'king_of_hearts2'},
   {name: 's1', img: 'ace_of_spades'}, {name: 's2', img: '2_of_spades'}, {name: 's3', img: '3_of_spades'}, {name: 's4', img: '4_of_spades'}, {name: 's5', img: '5_of_spades'}, {name: 's6', img: '6_of_spades'}, {name: 's7', img: '7_of_spades'}, {name: 's8', img: '8_of_spades'}, {name: 's9', img: '9_of_spades'}, {name: 's10', img: '10_of_spades'}, {name: 'sj', img: 'jack_of_spades2'}, {name: 'sq', img: 'queen_of_spades2'}, {name: 'sk', img: 'king_of_spades2'},
+  {name: 'h1', img: 'ace_of_hearts'}, {name: 'h2', img: '2_of_hearts'}, {name: 'h3', img: '3_of_hearts'}, {name: 'h4', img: '4_of_hearts'}, {name: 'h5', img: '5_of_hearts'}, {name: 'h6', img: '6_of_hearts'}, {name: 'h7', img: '7_of_hearts'}, {name: 'h8', img: '8_of_hearts'}, {name: 'h9', img: '9_of_hearts'}, {name: 'h10', img: '10_of_hearts'}, {name: 'hj', img: 'jack_of_hearts2'}, {name: 'hq', img: 'queen_of_hearts2'}, {name: 'hk', img: 'king_of_hearts2'},
   {name: 'jb', img: 'black_joker'}, {name: 'jc', img: 'red_joker'},
 ]
 let thisGameCards = allCards;
@@ -115,35 +115,29 @@ io.on('connection', async function (socket) {
 });
 
 async function checkAndStart() {
-  if(db.users.length == 4) {
+  if(db.users.length == 1) {
     console.log('startGame')
     io.to('room1').emit('startGame', {});
-    db.read = await reading(0);
-    console.log("==================================================" + db.read);
+    await reading(0, function(err, lastRead){
+      db.read = lastRead;
+      console.log("==================================================" + db.read);
+    });
   }
 }
 
-async function reading(userIndex) {
+async function reading(userIndex, cb) {
   console.log(db.users)
   if(db.users[userIndex].read == -1) {
-    return await reading((userIndex+1)%4)
+    return await reading((userIndex+1)%4, cb)
   }
   if(db.users.filter(user => user.read == -1).length == 3) {
-    return db.users.find(user => user.read != -1).read;
+    return cb(null, db.users.find(user => user.read != -1).read);
   } 
   let socket = db.users[userIndex].socket;
   socket.emit('read');
   socket.on('read', async function(data) {
     db.users[userIndex].read = data.read;
     io.to('room1').emit('otherPlayerRead', {name: db.users[userIndex].name, read: db.users[userIndex].read});
-    await reading((userIndex+1)%4)
+    await reading((userIndex+1)%4, cb)
   })
-}
-
-function reading2() {
-  for(let user of db.users) {
-    if(user.read != -1) {
-
-    }
-  }
 }
