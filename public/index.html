@@ -49,11 +49,13 @@
   })
   
   function renderMe() {
-    var html = '<table class="table" style="width: 84vw;"><tr>';
+    var html = '<div class="row" style="width: 100vw"><div class="col-md-11">';
     for(var i in myCards) {
-      html += (`<td style="padding: 0px;"><img class="img-responsive" src="/images/cards/${myCards[i].img}.svg" style="width:7vw;"/>`)
+      html += (`<div class="d-inline-block col-md-1" data-cardname="${myCards[i].name}">
+        <img class="img-responsive" src="/images/cards/${myCards[i].img}.svg" style="width:8vw;"/>
+      </div>`)
     }
-    html += '</tr>'
+    html += `</div><div class="col-md-1"><button class="btn" onclick="arrangeCrads()">Arrange</button></div></div>`
     $('#me').html(html)
   }
 
@@ -120,6 +122,43 @@
       $('#rightPlayer').html(user.name)
       $('#rightPlayer').attr('data-name', user.name)
     }
+  }
+
+  function arrangeCrads() {
+    let clubs = myCards.filter(card => card.name.startsWith('c'))
+    let diamonds = myCards.filter(card => card.name.startsWith('d'))
+    let spades = myCards.filter(card => card.name.startsWith('s'))
+    let hearts = myCards.filter(card => card.name.startsWith('h'))
+    let jokers = myCards.filter(card => card.name.startsWith('j'))
+
+    function compareCrads(a, b) {
+      if(isNaN(a.name[1]) || isNaN(b.name[1])) {
+        if(isNaN(a.name[1]) && !isNaN(b.name[1])) {
+          return 1;
+        } else if (!isNaN(a.name[1]) && isNaN(b.name[1])) {
+          return -1;
+        } else {
+          if(a.name[1] == 'k') return 1;
+          else if(b.name[1] == 'j') return 1;
+          else return -1;
+        }
+      } else {
+        let num1 = parseInt(a.name.substring(1, a.name.length));
+        let num2 = parseInt(b.name.substring(1, b.name.length));
+        if(num1 > num2) return 1;
+        if(num1 < num2) return -1;
+        else return 0;
+      }
+    }
+    clubs = clubs.sort(compareCrads);
+    diamonds = diamonds.sort(compareCrads);
+    spades = spades.sort(compareCrads);
+    hearts = hearts.sort(compareCrads);
+    if(jokers.length == 2) {
+      jokers = [jokers.find(joker => joker.name[1] == 'b'), jokers.find(joker => joker.name[1] == 'c')]
+    }
+    myCards = clubs.concat(diamonds, spades, hearts, jokers);
+    renderMe();
   }
 
   // function getWidth() {
