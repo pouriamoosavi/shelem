@@ -15,16 +15,16 @@
   <tbody>
     <tr style="height: 5vh;">
       <td class="text-center" colspan="3">
-        <div id="frontPlayer" data-name=""></div>
+        <div style="font-weight: bold;" id="frontPlayer" data-name=""></div>
       </td>
     </tr>
     <tr style="height: 65%;">
       <td style="width: 7vh;">
-        <div style="transform: rotate(-90deg);" id="leftPlayer" data-name=""></div>
+        <div style="transform: rotate(-90deg); font-weight: bold;" id="leftPlayer" data-name=""></div>
       </td>
       <td></td>
       <td style="width: 7vh;">
-        <div style="transform: rotate(-90deg);" id="rightPlayer" data-name=""></div>
+        <div style="transform: rotate(-90deg); font-weight: bold;" id="rightPlayer" data-name=""></div>
       </td>
     </tr>
     <tr style="height: 25%;">
@@ -35,6 +35,7 @@
 <script>
   var socket = io.connect('/');
   var myCards = [];
+  var myName = "";
 
   $(document).ready(function() {
     bootbox.prompt({ 
@@ -49,13 +50,14 @@
   })
   
   function renderMe() {
-    var html = '<div class="row" style="width: 100vw"><div class="col-md-11">';
+    var html = '<div class="row" style="width: 100vw"><div class="col-md-10">';
     for(var i in myCards) {
       html += (`<div class="d-inline-block col-md-1" data-cardname="${myCards[i].name}">
         <img class="img-responsive" src="/images/cards/${myCards[i].img}.svg" style="width:8vw;"/>
       </div>`)
     }
-    html += `</div><div class="col-md-1"><button class="btn" onclick="arrangeCrads()">Arrange</button></div></div>`
+    html += `</div><div class="col-md-2"><div style="font-weight: bold;" id="myName" data-name="${myName}">${myName}</div>
+      <button class="btn" onclick="arrangeCrads()">Arrange</button></div></div>`
     $('#me').html(html)
   }
 
@@ -65,7 +67,7 @@
 
   socket.on('youJoined', function(data) {
     showBeforeUsers(data.otherUsers)
-
+    myName = data.name;
     myCards = data.cards;
     $('#joined').show();
   })
@@ -80,23 +82,20 @@
       title: "Read: (-1 for pass)",
       callback: function(result){ 
         if(result) {
-          socket.emit('read', { read: result });
+          socket.emit('Iread', { read: result });
         } else {
-          socket.emit('read', { read: -1 });
+          socket.emit('Iread', { read: -1 });
         }
       }
     });
   })
 
   socket.on('otherPlayerRead', function(data) {
-    console.log(data)
     let {name, read} = data;
-    console.log(name, read)
-    $(`div[data-name="${name}"]`).append('- ' + read);
+    $(`div[data-name="${name}"]`).html(`${name} (${read})`)
   })
 
   function showBeforeUsers(users) {
-    console.log(users)
     if(users[users.length-1]) {
       $('#rightPlayer').html(users[users.length-1])
       $('#rightPlayer').attr('data-name', users[users.length-1]) 
