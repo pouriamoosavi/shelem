@@ -71,7 +71,7 @@ let allCards = [
 ]
 let thisGameCards = allCards;
 let db = {
-  users: [
+  players: [
     // {name: '',
     // socket: {},
     // ip: '',
@@ -88,27 +88,27 @@ app.get('/', function (req, res) {
 
 io.on('connection', async function (socket) {
   socket.on('join', async function(data) {
-    if(db.users.length >= numberOfPlayers) return socket.emit('roomFull');
+    if(db.players.length >= numberOfPlayers) return socket.emit('roomFull');
     const name = data.myName;
-    let userCards = [];
+    let playerCards = [];
     for(let i=0; i<12; i++) {
       let rand = Math.floor(Math.random() * thisGameCards.length);
-      userCards.push(thisGameCards[rand]);
+      playerCards.push(thisGameCards[rand]);
       thisGameCards.splice(rand, 1);
     } 
 
-    let otherUsers = db.users.map(user => user.name);
+    let otherPlayers = db.players.map(player => player.name);
 
-    let newUser = {
+    let newPlayer = {
       name,
       socket,
       ip: '',
-      cards: userCards,
+      cards: playerCards,
     }
-    db.users.push(newUser);
-    console.log(newUser.cards)
-    io.to('room1').emit('newUserJoined', {user: {name}});
-    socket.emit('youJoined', {name: newUser.name, cards: newUser.cards, otherUsers});
+    db.players.push(newPlayer);
+    console.log(newPlayer.cards)
+    io.to('room1').emit('newPlayerJoined', {player: {name}});
+    socket.emit('youJoined', {name: newPlayer.name, cards: newPlayer.cards, otherPlayers});
     socket.join('room1');
 
     await checkAndStart();
@@ -116,7 +116,7 @@ io.on('connection', async function (socket) {
 });
 
 async function checkAndStart() {
-  if(db.users.length == numberOfPlayers) {
+  if(db.players.length == numberOfPlayers) {
     io.to('room1').emit('startGame', {});
     await reading(0, function(err, lastRead){
       db.read = lastRead;
@@ -124,21 +124,21 @@ async function checkAndStart() {
     });
   }
 }
-async function reading(userIndex, cb) {
-  if(db.users.filter(user => user.read == -1).length == (numberOfPlayers-1)) {
-    return cb(null, db.users.find(user => user.read != -1).read);
-  } else if(db.users[userIndex].read == -1) {
-    await reading((userIndex+1)%numberOfPlayers, cb)
+async function reading(playerIndex, cb) {
+  if(db.players.filter(player => player.read == -1).length == (numberOfPlayers-1)) {
+    return cb(null, db.players.find(player => player.read != -1).read);
+  } else if(db.players[playerIndex].read == -1) {
+    await reading((playerIndex+1)%numberOfPlayers, cb)
   } else {
-    let socket = db.users[userIndex].socket;
+    let socket = db.players[playerIndex].socket;
     socket.removeAllListeners('Iread');
     socket.emit('read');
     socket.on('Iread', async function(data) {
-      db.users[userIndex].read = data.read;
-      console.log(userIndex + ' read')
-      io.to('room1').emit('otherPlayerRead', {name: db.users[userIndex].name, read: db.users[userIndex].read});
-      console.log(((userIndex+1)%numberOfPlayers) + ' turn')
-      await reading((userIndex+1)%numberOfPlayers, cb)
+      db.players[playerIndex].read = data.read;
+      console.log(playerIndex + ' read')
+      io.to('room1').emit('otherPlayerRead', {name: db.players[playerIndex].name, read: db.players[playerIndex].read});
+      console.log(((playerIndex+1)%numberOfPlayers) + ' turn')
+      await reading((playerIndex+1)%numberOfPlayers, cb)
     })
   }
 }
