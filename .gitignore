@@ -1,3 +1,5 @@
 node_modules/
 .tmp/
 .vscode/
+db.json
+learns
