@@ -1,15 +1,15 @@
 const express = require('express');
 const low = require('lowdb')
 const FileSync = require('lowdb/adapters/FileSync')
-const server = require('http').Server(app);
-const io = require('socket.io')(server);
 
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-server.listen(3000);
+const server = require('http').Server(app);
+const io = require('socket.io')(server);
+server.listen(3001);
 // WARNING: app.listen(80) will NOT work here!
  
 const adapter = new FileSync('db.json')
@@ -25,45 +25,42 @@ const allCards = [
   {name: 'jb'}, {name: 'jc'},
 ]
 let thisGameCards = allCards;
-let db = {
-  players: [
-    // {name: '',
-    // socket: {},
-    // ip: '',
-    // read: 0,
-    // cards: []}
-  ],
-  read: 0,
-}
+
 const numberOfPlayers = 4;
 
 io.on('connection', async function (socket) {
   socket.on('join', async function(data) {
-    if(db.get('players').size().value() >= numberOfPlayers) return socket.emit('roomFull');
+    try{
 
-    const name = data.myName;
-    let playerCards = [];
-    for(let i=0; i<12; i++) {
-      let rand = Math.floor(Math.random() * thisGameCards.length);
-      playerCards.push(thisGameCards[rand]);
-      thisGameCards.splice(rand, 1);
-    } 
+      if(db.get('players').size().value() >= numberOfPlayers) return socket.emit('roomFull');
 
-    let otherPlayers = db.get('players').map('name').value()
+      const name = data.myName;
 
-    let newPlayer = {
-      name,
-      socket,
-      ip: '',
-      cards: playerCards,
+      const otherPlayers = db.get('players').map(player => {return {name: player.name}}).value()
+      
+      let playerCards = [];
+      for(let i=0; i<12; i++) {
+        let rand = Math.floor(Math.random() * thisGameCards.length);
+        playerCards.push(thisGameCards[rand]);
+        thisGameCards.splice(rand, 1);
+      } 
+      let newPlayer = {
+        name,
+        socketID: socket.id,
+        ip: '',
+        cards: playerCards,
+        read: 0,
+      }
+      db.get('players').push(newPlayer).write()
+
+      io.to('room1').emit('newPlayerJoined', {player: {name}});
+      socket.emit('youJoined', {name: newPlayer.name, cards: newPlayer.cards, otherPlayers});
+      socket.join('room1');
+
+      await checkAndStart();
+    } catch (err) {
+      console.log(err)
     }
-    db.get('posts').push(newPlayer).write()
-    console.log(newPlayer.cards)
-    io.to('room1').emit('newPlayerJoined', {player: {name}});
-    socket.emit('youJoined', {name: newPlayer.name, cards: newPlayer.cards, otherPlayers});
-    socket.join('room1');
-
-    await checkAndStart();
   })
 });
 
@@ -71,7 +68,7 @@ async function checkAndStart() {
   if(db.get('players').size().value() == numberOfPlayers) {
     io.to('room1').emit('startGame', {});
     await reading(0, function(err, lastReadPlayer){
-      let lastRead = lastReadPlayer.read;
+      const lastRead = lastReadPlayer.read;
       db.set('read', lastRead).write()
       console.log("==================================================" + db.get('read').value());
     });
@@ -80,15 +77,16 @@ async function checkAndStart() {
 async function reading(playerIndex, cb) {
   if(db.get('players').filter({read: -1}).size().value() == (numberOfPlayers-1)) {
     return cb(null, db.get('players').find(player => player.read != -1).cloneDeep().value());
-  } else if(db.get('players').nth(playerIndex).map('read').value() == -1) {
+  } else if(db.get('players').nth(playerIndex).value().read == -1) {
     await reading((playerIndex+1)%numberOfPlayers, cb)
   } else {
     const player = db.get('players').nth(playerIndex).value();
-    let {name, read, socket} = player;
+    let {name, read, socketID} = player;
+    let socket = io.sockets.sockets[socketID]
     socket.removeAllListeners('Iread');
     socket.emit('read', {highestRead: await getHighestRead()});
     socket.on('Iread', async function(data) {
-      db.get('players').nth(playerIndex).assign({ read: data.read}).write();
+      db.get('players').nth(playerIndex).assign({ read: parseInt(data.read) }).write();
       io.to('room1').emit('otherPlayerRead', {name, read});
       await reading((playerIndex+1)%numberOfPlayers, cb)
     })
