@@ -68,9 +68,12 @@ async function checkAndStart() {
   if(db.get('players').size().value() == numberOfPlayers) {
     io.to('room1').emit('startGame', {});
     await reading(0, function(err, lastReadPlayer){
-      const lastRead = lastReadPlayer.read;
-      db.set('read', lastRead).write()
-      console.log("==================================================" + db.get('read').value());
+      const {name, read: lastRead} = lastReadPlayer;
+      db.set('read', lastRead).write();
+      console.log(db.get('read').value());
+      await commanding(name, function(err, command) {
+        console.log(command)
+      })
     });
   }
 }
@@ -90,6 +93,23 @@ async function reading(playerIndex, cb) {
       io.to('room1').emit('otherPlayerRead', {name, read});
       await reading((playerIndex+1)%numberOfPlayers, cb)
     })
+  }
+}
+async function commanding(playerName, cb) {
+  try{
+    const player = db.get('players').find({name: playerName}).value();
+    let {name, socketID} = player;
+    let socket = io.sockets.sockets[socketID]
+    socket.removeAllListeners('command');
+    socket.emit('command');
+    socket.on('Icommand', async function(data) {
+      //db.get('players').nth(playerIndex).assign({ read: parseInt(data.read) }).write();
+      io.to('room1').emit('otherPlayerCommand', {name, command: data.command});
+      //await reading((playerIndex+1)%numberOfPlayers, cb)
+      cb(null, data.command);
+    })
+  } catch (err) {
+    throw err;
   }
 }
 async function getHighestRead() {
