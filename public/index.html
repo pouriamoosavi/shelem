@@ -66,7 +66,7 @@
   })
 
   socket.on('youJoined', function(data) {
-    showBeforeUsers(data.otherUsers)
+    showBeforeUsers(data.otherPlayers)
     myName = data.name;
     myCards = data.cards;
     $('#joined').show();
