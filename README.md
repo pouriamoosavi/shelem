@@ -1,7 +1,7 @@
 # Shelem <br>
 <h3>Attention! not complete yet</h3>
-Shelem is an Iranian game card which starts with 4 players. <br>
-This project is an open-source online Shelem application, It is based on express.js and socket.io. For database I use lowdb. Also the 'index.html' file does not develope any more and we add a new project as 'shelem-frontend' which is written in react.js and supppse to be this project's frontend.<br>
+Shelem is an Iranian card game which starts with 4 players. <br>
+This project is an open-source online Shelem application, It is based on express.js and socket.io. For database I have used lowdb. Also the 'index.html' file wno't be developed any more and we have added a new project as 'shelem-frontend' which is written in react.js and supposed to be this project's frontend.<br>
 To run(unix): 
 <pre>cd [project_directory]
 npm i 
