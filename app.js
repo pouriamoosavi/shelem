@@ -24,9 +24,14 @@ const allCards = [
   {name: 'h2'}, {name: 'h3'}, {name: 'h4'}, {name: 'h5'}, {name: 'h6'}, {name: 'h7'}, {name: 'h8'}, {name: 'h9'}, {name: 'h10'}, {name: 'hj'}, {name: 'hq'}, {name: 'hk'}, {name: 'ha'}, 
   {name: 'jb'}, {name: 'jc'},
 ]
-let thisGameCards = allCards;
 
 const limitOfPlayers = 4;
+
+var path = require('path');
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('/', function (req, res) {
+  res.sendFile('/index.html');
+});
 
 io.on('connection', async function (socket) {
   socket.on('join', async function(data) {
@@ -35,11 +40,9 @@ io.on('connection', async function (socket) {
       let {start} = await checkAndStart({matchID});
       if(start) {
         await reading(matchID, 0, async function(err, commander){
-          const {name, read} = commander;
-          db.get("matches").find({id: matchID}).get("games").last().assign({
-            read,
-            commander: {name},
-          }).write();
+          const {name} = commander;
+          db.get("matches").find({id: matchID}).get("games").last()
+            .get("players").find({name}).assign({commander: true}).write();
           // console.log(db.get('read').value());
           await commanding(matchID, name, async function(err, command) {
             db.get("matches").find({id: matchID}).get("games").last().assign({command}).write();
@@ -60,39 +63,28 @@ async function join({socket, name}) {
       // create match if the last one is full or not one exists
       match = db.get('matches').push({ 
         id: shortid.generate(),
-        data: new Date(),
-        availableCards: allCards,
+        date: new Date(),
         players: [],
         games: []
       }).cloneDeep().write()
     }
-    let {id, availableCards, players} = match[0]
+    let {id, players} = match[0]
     //now match has at least one seat
 
     const otherPlayers = players.map(player => {return {name: player.name}});
 
-    let playerCards = [];
-    for(let i=0; i<12; i++) {
-      let rand = Math.floor(Math.random() * availableCards.length);
-      playerCards.push(thisGameCards[rand]);
-      availableCards.splice(rand, 1);
-    } 
-    db.get("matches").find({id}).assign({availableCards}).write();
-
     let newPlayer = {
       name,
-      team: (otherPlayers % 2)+1,
       socketID: socket.id,
       ip: '',
-      cards: playerCards,
-      read: 0,
     }
     players.push(newPlayer);
     db.get("matches").find({id}).assign({players}).write();
 
     io.to(id).emit('newPlayerJoined', {player: {name: newPlayer.name}});
-    socket.emit('youJoined', {name: newPlayer.name, cards: newPlayer.cards, otherPlayers});
+    socket.emit('youJoined', {name: newPlayer.name, otherPlayers});
     socket.join(id);
+
     return {matchID: id};
 
   } catch (err) {
@@ -104,35 +96,30 @@ async function checkAndStart({matchID}) {
   let match = db.get("matches").find({id: matchID}).cloneDeep().value();
   let matchPlayersNumber = match.players.length;
   if(matchPlayersNumber == limitOfPlayers) {
-    let newGame = {
-      read: 0,
-      commander: null,
-      command: "",
-      team1Score: 0,
-      team2Score: 0,
-      sets: []
-    }
-    db.get("matches").find({id: matchID}).get("games").push(newGame).write();
-    io.to(match.id).emit('startGame', {});
+    await startGameAndSendCards(matchID)
     return {start: true}
   } else {
     return {start: false}
   }
 }
+
 async function reading(matchID, playerIndex, cb) {
   let match = db.get("matches").find({id: matchID}).cloneDeep().value();
-  if(match.players.filter(player => player.read == -1).length == (limitOfPlayers-1)) {
-    return cb(null, match.players.find(player => player.read != -1));
-  } else if(match.players[playerIndex].read == -1) {
+  let game = db.get("matches").find({id: matchID}).get("games").last().cloneDeep().value();
+
+  if(game.players.filter(player => player.read == -1).length == (limitOfPlayers-1)) {
+    return cb(null, game.players.find(player => player.read != -1));
+  } else if(game.players[playerIndex].read == -1) {
     await reading(matchID, (playerIndex+1)%limitOfPlayers, cb)
   } else {
-    let {name, read, socketID} = match.players[playerIndex];
+    let {name, socketID} = match.players[playerIndex];
     let socket = io.sockets.sockets[socketID]
     socket.removeAllListeners('Iread');
     socket.emit('read', {highestRead: await getHighestRead(matchID)});
     socket.on('Iread', async function(data) {
-      db.get("matches").find({id: matchID}).get("players").nth(playerIndex).assign({ read: parseInt(data.read) }).write();
-      io.to(match.id).emit('otherPlayerRead', {name, read});
+      db.get("matches").find({id: matchID}).get("games").last()
+        .get("players").nth(playerIndex).assign({ read: parseInt(data.read) }).write();
+      io.to(match.id).emit('otherPlayerRead', {name, read: data.read});
       await reading(matchID, (playerIndex+1)%limitOfPlayers, cb)
     })
   }
@@ -157,12 +144,51 @@ async function commanding(matchID, playerName, cb) {
 }
 async function getHighestRead(matchID) {
   try{
-    let reads = db.get("matches").find({id: matchID}).get("players").map('read');
+    let reads = db.get("matches").find({id: matchID}).get("games").last().get("players").map('read');
     let highestRead = 0;
     for(let read of reads) {
       if(read > highestRead) highestRead = read;
     }
     return highestRead;
+  } catch (err) {
+    throw err;
+  }
+}
+async function startGameAndSendCards(matchID) {
+  try{
+    let match = db.get("matches").find({id: matchID}).cloneDeep().value();
+
+    io.to(match.id).emit('startGame', {});
+
+    let newGame = {
+      availableCards: allCards,
+      players: [],
+      command: "",
+      team1Score: 0,
+      team2Score: 0,
+      sets: []
+    }
+    for(let mp in match.players) {
+      let playerCards = [];
+      for(let i=0; i<12; i++) {
+        let rand = Math.floor(Math.random() * newGame.availableCards.length);
+        playerCards.push(newGame.availableCards[rand]);
+        newGame.availableCards.splice(rand, 1);
+      } 
+      newGame.players.push({
+        name: match.players[mp].name,
+        team: (parseInt(mp)%2) + 1,
+        cards: playerCards,
+        read: 0, 
+        commander: false,
+      })
+      let socket = io.sockets.sockets[match.players[mp].socketID];
+      socket.emit("sendCards", {cards: playerCards})
+    }
+
+    db.get("matches").find({id: match.id}).get("games").push(newGame).write();
+    return;
+
   } catch (err) {
     throw err;
   }
