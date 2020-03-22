@@ -90,6 +90,12 @@ events = [
     }
   },
   {
+    action: "lastGameCanceled",
+    from: "server",
+    to: "romm1",
+    data: {}
+  },
+  {
     action: "",
     from: "",
     to: "",

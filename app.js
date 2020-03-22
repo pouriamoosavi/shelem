@@ -109,8 +109,11 @@ async function checkAndStart({matchID}) {
 async function reading(matchID, playerIndex, cb) {
   let match = db.get("matches").find({id: matchID}).cloneDeep().value();
   let game = db.get("matches").find({id: matchID}).get("games").last().cloneDeep().value();
-
-  if(game.players.filter(player => player.read == -1).length == (limitOfPlayers-1)) {
+  if(game.players.filter(player => player.read == -1).length == 3 && game.players.filter(player => player.read == 0).length == 1) {
+    io.to(match.id).emit('lastGameCanceled', {});
+    await startGameAndSendCards(matchID)
+    return await reading(matchID, 0, cb)
+  } else if(game.players.filter(player => player.read == -1).length == (limitOfPlayers-1)) {
     return cb(null, game.players.find(player => player.read != -1));
   } else if(game.players[playerIndex].read == -1) {
     await reading(matchID, (playerIndex+1)%limitOfPlayers, cb)
@@ -168,10 +171,16 @@ async function startGameAndSendCards(matchID) {
   try{
     let match = db.get("matches").find({id: matchID}).cloneDeep().value();
 
+    //shift players. so when this method called for second time, the next user will read first;
+    let players = match.players;
+    let shifted = players.shift();
+    players.push(shifted);
+    db.get("matches").find({id: matchID}).assign({players}).write();
+
     io.to(match.id).emit('startGame', {});
 
     let newGame = {
-      availableCards: allCards,
+      availableCards: [...allCards],
       players: [],
       command: "",
       team1Score: 0,
