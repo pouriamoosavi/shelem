@@ -22,7 +22,10 @@
       "sets": [{
         "cards": [{"name": "c1", "playerName": "player name 1"}, {"name": "hk", "playerName": "player name 2"}, {}],
         "point": 25,
-        "winnerTeam": 1 
+        "winner": {
+          "name":"player name",
+          "team": 1
+        }
       }, {}]
     }, {}]
   }, {}]
