@@ -4,6 +4,7 @@ const low = require('lowdb')
 const FileSync = require('lowdb/adapters/FileSync')
 const shortid = require('shortid')
 const calculate = require('./calculate');
+const validate = require('./validate');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -129,14 +130,21 @@ async function reading(matchID, playerIndex, cb) {
 async function commanding(matchID, playerName, cb) {
   try{
     let match = db.get("matches").find({id: matchID}).cloneDeep().value();
+    let game = db.get("matches").find({id: matchID}).get("games").last().cloneDeep().value();
+    let gamePlayer = game.players.find(pl => pl.name == playerName);
+    let replaceCards = game.availableCards;
     const player = match.players.find(player => player.name == playerName)
     let {name, socketID} = player;
     let socket = io.sockets.sockets[socketID]
     socket.removeAllListeners('command');
-    socket.emit('command');
+    socket.emit('command', {replaceCards});
     socket.on('Icommand', async function(data) {
-      //db.get('players').nth(playerIndex).assign({ read: parseInt(data.read) }).write();
-      io.to(match.id).emit('otherPlayerCommand', {name, command: data.command});
+      const {command, newCards} = data;
+      if(validate.cardsReplace(gamePlayer.cards, replaceCards, newCards)) {
+        db.get("matches").find({id: matchID}).get("games").last()
+          .get("players").find({name: playerName}).assign({cards: newCards}).write()
+      }
+      io.to(match.id).emit('otherPlayerCommand', {name, command});
       //await reading((playerIndex+1)%numberOfPlayers, cb)
       cb(null, data.command);
     })
