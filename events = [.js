@@ -67,14 +67,17 @@ events = [
     action: "command",
     from: "server",
     to: "player",
-    data: {}
+    data: {
+      replaceCards: [{name: "d2"}, {}]
+    }
   },
   {
     action: "Icommand",
     from: "player",
     to: "server",
     data: {
-      command: "hc"
+      command: "hc",
+      newCards: [{name: "c3"}, {}]
     }
   },
   {
