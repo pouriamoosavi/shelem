@@ -1,6 +1,11 @@
 # Shelem <br>
 <h3>Attention! not complete yet</h3>
-JS Shelem game project. To run: <pre>cd [project_directory]</pre> then <pre>node app.js</pre> <br>
+Shelem is an Iranian game card which starts with 4 players. <br>
+This project is an open-source online Shelem application, It is based on express.js and socket.io. For database I use lowdb. Also the 'index.html' file does not develope any more and we add a new project as 'shelem-frontend' which is written in react.js and supppse to be this project's frontend.<br>
+To run(unix): 
+<pre>cd [project_directory]
+npm i 
+node app.js</pre><br>
 For more information about the game itself you can visit <a href="https://fa.wikipedia.org/wiki/%D8%B4%D9%84%D9%85_(%D8%A8%D8%A7%D8%B2%DB%8C)">شلم</a> or <a href="https://en.wikipedia.org/wiki/Shelem">Shelem</a><br>
 Requirements: 
 <li>NodeJS version >12 (for more information https://nodejs.org/en/)</li> 
