@@ -3,6 +3,7 @@ const app = express();
 const low = require('lowdb')
 const FileSync = require('lowdb/adapters/FileSync')
 const shortid = require('shortid')
+const calculate = require('./calculate');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -35,6 +36,7 @@ app.get('/', function (req, res) {
 
 io.on('connection', async function (socket) {
   socket.on('join', async function(data) {
+    console.log(calculate.point([{name: 'd2'}, {name: 'd5'}, {name: 'jb'}, {name: 'c8'}], "nac"))
     try{
       let {matchID} = await join({socket, name: data.myName});
       let {start} = await checkAndStart({matchID});
