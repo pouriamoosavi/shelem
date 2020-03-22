@@ -2,21 +2,23 @@
   "match": [{
     "id": "short id",
     "date": "some js date",
-    "availableCards": [{"name": "c1"}, {"name": "hk"}, {}],
     "players": [{
       "name": "player name",
-      "team": 1,
       "socketID": "socket.id",
-      "ip": "",
-      "cards": [{"name": "c1"}, {"name": "hk"}, {}],
-      "read": 0
+      "ip": ""
     }, {}],
     "games": [{
-      "read": 150,
-      "commander": {"name": "player name"},
+      "availableCards": [{"name": "c1"}, {"name": "hk"}, {}],
+      "players": [{
+        "name": "player name",
+        "team": 1,
+        "cards": [{"name": "c1"}, {"name": "hk"}, {}],
+        "read": 0,
+        "commander": false
+      }, {}],
       "command": "hc",
-      "team1Score": 120,
-      "team2Score": 90,
+      "team1Score": 0,
+      "team2Score": 0,
       "sets": [{
         "cards": [{"name": "c1"}, {"name": "hk"}, {}],
         "point": 25,

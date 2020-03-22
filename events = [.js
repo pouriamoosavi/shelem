@@ -13,7 +13,6 @@ events = [
     to: 'player',
     data: {
       name: "player name", 
-      cards: [{name: 'c1', img: 'ace_of_clubs'}, ...{}], 
       otherPlayers: [{name: "other player's name"}]
     }
   },
@@ -30,6 +29,14 @@ events = [
     from: "server",
     to: "room1",
     data: {}
+  },
+  {
+    action: "sendCards",
+    from: "server",
+    to: "player",
+    data: {
+      cards: [{name: "c2"}, {}]
+    }
   },
   {
     action: "read",
@@ -90,7 +97,7 @@ events = [
 ];
 commands: 
 
-          ["hc", "hd", "hs", "hh",
-          "sc", "sd", "ss", "sh",
-          "nc", "nd", "ns", "nh",
-          "ac", "ad", "as", "ah"]
+          ["hoc", "hod", "hos", "hoh",
+          "sac", "sad", "sas", "sah",
+          "nac", "nad", "nas", "nah",
+          "anc", "and", "ans", "anh"]
