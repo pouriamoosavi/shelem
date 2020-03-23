@@ -2,6 +2,8 @@ const express = require('express');
 const app = express();
 const low = require('lowdb')
 const FileSync = require('lowdb/adapters/FileSync')
+const adapter = new FileSync('db.json')
+const db = low(adapter)
 const shortid = require('shortid')
 const calculate = require('./calculate');
 const validate = require('./validate');
@@ -13,9 +15,6 @@ const server = require('http').Server(app);
 const io = require('socket.io')(server);
 server.listen(3001);
 // WARNING: app.listen(80) will NOT work here!
- 
-const adapter = new FileSync('db.json')
-const db = low(adapter)
 
 db.defaults({ matches: [] }).write()
 
@@ -177,7 +176,7 @@ async function startGameAndSendCards(matchID) {
     players.push(shifted);
     db.get("matches").find({id: matchID}).assign({players}).write();
 
-    io.to(match.id).emit('startGame', {});
+    io.to(match.id).emit('startGame', {matchID: match.id});
 
     let newGame = {
       availableCards: [...allCards],

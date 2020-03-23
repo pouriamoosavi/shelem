@@ -28,7 +28,9 @@ events = [
     action: "gameStarts",
     from: "server",
     to: "room1",
-    data: {}
+    data: {
+      matchID: match.id
+    }
   },
   {
     action: "sendCards",
